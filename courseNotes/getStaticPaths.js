@@ -7,6 +7,10 @@ function ProductDetails(props) {
     // Destructure the 'singleProductInfo' prop for easy access.
     const { loadedProduct } = props
 
+    // fallback content return (if fallback: true)
+    if(!loadedProduct) return <p>...Loading</p> // USED WHEN FALLBACK BOOLEAN IS SET TO TRUE (won't be an issue if opting to have ALL dynamic pages be pre-rendered)
+                                                // if fallback: 'blocking'... you dont even need a loading return, the page will just be blank until all content is loaded in
+
     return (
         <ul>
             <li>{loadedProduct.name}</li>
@@ -31,6 +35,9 @@ export async function getStaticProps(context) { // context arg used here to grab
     // Find the product that matches the specified 'productId'.
     const product = data.products.find(product => product.id === productId)
 
+    // THIS CONDITIONAL BELOW IS FOR IF 'fallback: true' ... its purpose is to return the 404 page if we try to pre-render a page that doesnt have any data in it
+    if(!product) return {notFound: true}
+
     // Return the product data as props for rendering.
     return {
         props: {
@@ -49,7 +56,15 @@ export async function getStaticPaths() {
             // Each 'params' object represents a specific route to be pre-rendered.
 
             // In this example, we're pre-rendering product pages for three specific product IDs.
-            // You can dynamically generate these based on your data if you have a large number of products.
+
+            // You can dynamically generate these based on your data if you have a large number of products:
+                //         const data = await getData()   <---- ( pretend we made a helper function to grab the data we used in getStaticProps() )
+                //         const ids = data.products.map((product) => product.id)
+                //         const params = ids.map( (id) => ({params: {productId: id} }) )
+                //         return {
+                //            paths: params,
+                //            fallback: true
+                //         }
 
             { params: { productId: '1' } },
             { params: { productId: '2' } },
@@ -58,8 +73,11 @@ export async function getStaticPaths() {
         // By setting 'fallback' to false, Next.js will return a 404 error for routes not defined in 'paths'.
         // If you want to handle undefined routes differently, you can set 'fallback' to 'blocking' or 'true'.
         // - 'blocking' will generate the page on the first request and cache it for future requests.
-        // - 'true' will allow undefined routes to be generated on-the-fly but might show loading spinners to users.
-        fallback: false
+
+        // **** - 'true' will allow undefined routes (in the paths array) to be generated on-the-fly but might show loading spinners to users ****.
+        // IDEALLY, YOU SHOULD PUT FREQUENT VISITED PAGES IN THE PATHS ARRAY, AND RARELY VISITED PAGES CAN BE GENERATED ON THE FLY IF FALLBACK IS SET TO "TRUE"
+        // ADDITIONALLY, IF USING 'fallback: true', be prepared to use a fallback statement before the JSX return since non pre-generated pages wont return render right away
+        fallback: true
     };
 }
 
